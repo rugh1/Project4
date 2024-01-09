@@ -9,7 +9,7 @@ DEFAULT_URL = '/'
 QUEUE_SIZE = 10
 IP = '127.0.0.1'
 PORT = 80
-SOCKET_TIMEOUT = 3
+SOCKET_TIMEOUT = 2
 WEBROOT = 'webroot'
 
 def handle_client(client_socket):
@@ -18,8 +18,12 @@ def handle_client(client_socket):
         req = client_socket.recv(1024).decode()
         logging.debug("Received request: %s", req)
         if len(req) > 0:
-            req = http.http_get(req)
-            res = req.create_respons()
+            if(http.http_get.valid_get()):
+                req = http.http_get(req)
+                res = req.create_respons()
+            else:
+                res = http.http_respond(400,{})
+
             logging.info("Sending response: %s %s", res.line, res.header)
             client_socket.send(res.ToBinary())
     except Exception as e:
@@ -27,6 +31,7 @@ def handle_client(client_socket):
     finally:
         client_socket.close()
         logging.info("Client connection closed")
+
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -52,15 +57,6 @@ def main():
     finally:
         server_socket.close()
 
-def test():
-    req = http.http_get('GET /index.html HTTP/1.1')
-    print("path:" +req.path)
-    print("line:" +req.line)
-    print("header:" + req.header)
-    print("body:" +req.body)
-    res = req.create_respons()
-    print(res.body)
-    print(res.ToBinary().decode("utf-8"))
 if __name__ == "__main__":
     # Call the main handler function
     main()

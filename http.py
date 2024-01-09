@@ -101,6 +101,8 @@ class http_get(http):
         '/moved': '/index.html'
     }
     def __init__(self, http_text):
+        if(not self.valid_get(http_text)):
+            return http_respond(400,{})
         super().__init__(http_text=http_text)
         self.parm = None #later 
         self.path = self.get_path_from_url(self.line)
@@ -115,14 +117,52 @@ class http_get(http):
         if(self.path == '/moved'):
             print('moving')
             return http_respond(302,{'Location':'/'})
+        if(self.path == '/error'):
+            return http_respond(500,{})
+        if(self.path == '/forbidden'):
+            return http_respond(403,{})
         if os.path.isfile(file_path):
+            print("found")
             with open(file_path, "rb") as f:
                 file = f.read()
                 content_type = self.content_types[file_path.split('.')[-1]]
             return http_respond(202,{} ,file, content_type)
+        else:
+            print("notfound")
+            file_path = 'webroot/404.html'
+            with open(file_path, "rb") as f:
+                file = f.read()
+                content_type = self.content_types[file_path.split('.')[-1]]
+            return http_respond(404,{} ,file, content_type)
         
     @staticmethod
     def get_path_from_url(url):
         logging.debug("Extracting path from URL: %s", url)
         url = url.split(" ")
         return url[1]
+    
+    @classmethod
+    def valid_get(text):
+                # Ensure the request starts with "GET "
+        if not text.startswith("GET "):
+            return False
+
+        # Find the index of the next space after "GET "
+        uri_start_index = text.find(" ", len("GET ")) + 1
+
+        # Ensure there is a single space after the URI
+        if text[uri_start_index] != " ":
+            return False
+
+        # Find the index of "/1.1HTTP"
+        http_version_index = text.find("/1.1HTTP")
+
+        # Ensure "/1.1HTTP" is found, and it is followed by a newline "\n"
+        if http_version_index == -1 or text[http_version_index + len("/1.1HTTP")] != "\n":
+            return False
+
+        # Ensure the line ends with "\r"
+        if not text.endswith("\r\n"):
+            return False
+
+        return True
