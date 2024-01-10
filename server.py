@@ -1,3 +1,4 @@
+import re
 import socket
 import http
 import logging
@@ -12,25 +13,33 @@ PORT = 80
 SOCKET_TIMEOUT = 2
 WEBROOT = 'webroot'
 
+
 def handle_client(client_socket):
     logging.info("New client connection")
     try:
         req = client_socket.recv(1024).decode()
         logging.debug("Received request: %s", req)
         if len(req) > 0:
-            if(http.http_get.valid_get()):
-                req = http.http_get(req)
-                res = req.create_respons()
+            if valid_get(req):
+                req = http.HttpGet(req)
+                res = req.create_response()
             else:
-                res = http.http_respond(400,{})
-
+                res = http.HttpRespond(400, {})
+                print(res.to_binary().decode())
             logging.info("Sending response: %s %s", res.line, res.header)
-            client_socket.send(res.ToBinary())
+            client_socket.send(res.to_binary())
     except Exception as e:
         logging.error("Error handling request: %s", e)
     finally:
         client_socket.close()
         logging.info("Client connection closed")
+
+
+def valid_get(request_string):
+    pattern = r"^GET (.*) HTTP/1.1"
+    match = re.match(pattern, request_string)
+    print(request_string)
+    return match is not None
 
 
 def main():
@@ -57,7 +66,8 @@ def main():
     finally:
         server_socket.close()
 
+
 if __name__ == "__main__":
     # Call the main handler function
     main()
-    #test()
+    # test()

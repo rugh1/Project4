@@ -1,11 +1,13 @@
-import re
 import os
 import logging
+
 # Configure logging
 logging.basicConfig(filename='http_server.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-class http():
-    WEB_ROOT  = 'webroot'
-    STATUS_CODES = { 
+
+
+class Http:
+    WEB_ROOT = 'webroot'
+    STATUS_CODES = {
         100: 'Continue',
         101: 'Switching Protocols',
         202: 'OK',
@@ -37,7 +39,7 @@ class http():
         'js': 'application/javascript',  # JavaScript
         'txt': 'text/plain',  # Text
         'ico': 'image/x-icon',  # ICO
-        'gif': 'image/gif',  # GIF
+        'gif': 'image/jpeg',  # GIF
         'png': 'image/png'  # PNG
     }
 
@@ -49,26 +51,26 @@ class http():
             self.header = header
             self.body = body
 
-    def ToBinary(self):
-        if(self.body == None):
+    def to_binary(self):
+        if self.body is None:
             return f"{self.line}\r\n{self.convert_header_to_string(self.header)}\r\n\r\n".encode()
         return f"{self.line}\r\n{self.convert_header_to_string(self.header)}\r\n\r\n".encode() + self.body
-    
+
     @staticmethod
     def parse_http_request(request):
         logging.debug("Parsing HTTP request: %s", request)
-        line , header , body = '', '', ''
-        if(request.find('\r\n') == -1):
+        line, header, body = '', '', ''
+        if request.find('\r\n') == -1:
             line = request
-        elif(request.find('\r\n\r\n') == -1):
-            header = request[request.find('\r\n')+4:]
+        elif request.find('\r\n\r\n') == -1:
+            header = request[request.find('\r\n') + 4:]
         else:
             line = request[0:request.find('\r\n')]
-            header = request[request.find('\r\n')+4:request.find('\r\n\r\n')]
+            header = request[request.find('\r\n') + 4:request.find('\r\n\r\n')]
             body = request[request.find('\r\n\r\n') + 8:]
-        logging.debug("Parsing HTTP request: %s, %s, %s", line , header, body)
-        return line , header , body
-    
+        logging.debug("Parsing HTTP request: %s, %s, %s", line, header, body)
+        return line, header, body
+
     @staticmethod
     def convert_header_to_string(header):
         logging.debug("Converting header to string: %s", header)
@@ -77,92 +79,63 @@ class http():
             headers += f"{key}: {value}\n"
             logging.debug("Converted header to string: %s", headers)
         return headers
-    
-  
-            
-class http_respond(http):
-    def __init__(self, code, header ,body= None, content_type = None):
+
+
+class HttpRespond(Http):
+    def __init__(self, code, header, body=None, content_type=None):
         self.line = f"HTTP/1.1 {code} {self.STATUS_CODES[code]}"
         self.header = header
         self.body = body
-        if(body is None):
+        if body is None:
             return
         self.handle_data(content_type)
 
     def handle_data(self, content_type):
-        self.header.update({'Content-Type':content_type})
-        self.header.update({'Content-Length':str(len(self.body))})
+        self.header.update({'Content-Type': content_type})
+        self.header.update({'Content-Length': str(len(self.body) + 2)})
         return
 
-    
-class http_get(http):
-    
-    REDIRECTION_DICTIONARY = { 
+
+class HttpGet(Http):
+    REDIRECTION_DICTIONARY = {
         '/moved': '/index.html'
     }
+
     def __init__(self, http_text):
-        if(not self.valid_get(http_text)):
-            return http_respond(400,{})
         super().__init__(http_text=http_text)
-        self.parm = None #later 
+        self.parm = None  # later
         self.path = self.get_path_from_url(self.line)
         print(self.path)
 
-    def create_respons(self):
-        if(self.path == '/'):
+    def create_response(self):
+        if self.path == '/':
             self.path = '/index.html'
         file_path = self.WEB_ROOT + self.path
         print(file_path)
         logging.info("Creating response for path: %s", self.path)
-        if(self.path == '/moved'):
+        if self.path == '/moved':
             print('moving')
-            return http_respond(302,{'Location':'/'})
-        if(self.path == '/error'):
-            return http_respond(500,{})
-        if(self.path == '/forbidden'):
-            return http_respond(403,{})
+            return HttpRespond(302, {'Location': '/'})
+        if self.path == '/error':
+            return HttpRespond(500, {})
+        if self.path == '/forbidden':
+            return HttpRespond(403, {})
         if os.path.isfile(file_path):
             print("found")
             with open(file_path, "rb") as f:
                 file = f.read()
                 content_type = self.content_types[file_path.split('.')[-1]]
-            return http_respond(202,{} ,file, content_type)
+            return HttpRespond(202, {}, file, content_type)
         else:
             print("notfound")
             file_path = 'webroot/404.html'
             with open(file_path, "rb") as f:
                 file = f.read()
                 content_type = self.content_types[file_path.split('.')[-1]]
-            return http_respond(404,{} ,file, content_type)
-        
+            return HttpRespond(404, {}, file, content_type)
+
     @staticmethod
     def get_path_from_url(url):
         logging.debug("Extracting path from URL: %s", url)
         url = url.split(" ")
         return url[1]
-    
-    @classmethod
-    def valid_get(text):
-                # Ensure the request starts with "GET "
-        if not text.startswith("GET "):
-            return False
-
-        # Find the index of the next space after "GET "
-        uri_start_index = text.find(" ", len("GET ")) + 1
-
-        # Ensure there is a single space after the URI
-        if text[uri_start_index] != " ":
-            return False
-
-        # Find the index of "/1.1HTTP"
-        http_version_index = text.find("/1.1HTTP")
-
-        # Ensure "/1.1HTTP" is found, and it is followed by a newline "\n"
-        if http_version_index == -1 or text[http_version_index + len("/1.1HTTP")] != "\n":
-            return False
-
-        # Ensure the line ends with "\r"
-        if not text.endswith("\r\n"):
-            return False
-
-        return True
