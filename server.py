@@ -15,6 +15,14 @@ WEBROOT = 'webroot'
 
 
 def handle_client(client_socket):
+    """
+    Handle a connection from a client.
+
+    :param client_socket: The socket connected to the client.
+    :type client_socket: socket.socket
+
+    :return: None    :rtype:
+    """
     logging.info("New client connection")
     try:
         req = client_socket.recv(1024).decode()
@@ -36,6 +44,15 @@ def handle_client(client_socket):
 
 
 def valid_get(request_string):
+    """
+    Check if a GET request is valid.
+
+    :param request_string: The GET request string.
+    :type request_string: str
+
+    :return: True if the GET request is valid, False otherwise.
+    :rtype: bool
+    """
     pattern = r"^GET (.*) HTTP/1.1"
     match = re.match(pattern, request_string)
     print(request_string)
@@ -43,16 +60,21 @@ def valid_get(request_string):
 
 
 def main():
+    """
+    Main function to run the server.
+
+    :return: None    :rtype:
+    """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         server_socket.bind((IP, PORT))
         server_socket.listen(QUEUE_SIZE)
         logging.info("Listening for connections on port %d", PORT)
-        print("Listening for connections on port %d", PORT)
+        print("Listening for connections on port %d" % PORT)
         while True:
             client_socket, client_address = server_socket.accept()
             try:
-                print("New connection received from %s", client_address)
+                print("New connection received from %s" % str(client_address))
                 client_socket.settimeout(SOCKET_TIMEOUT)
                 handle_client(client_socket)
             except socket.error as err:
@@ -70,4 +92,3 @@ def main():
 if __name__ == "__main__":
     # Call the main handler function
     main()
-    # test()

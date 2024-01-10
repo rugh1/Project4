@@ -44,6 +44,11 @@ class Http:
     }
 
     def __init__(self, http_text=None, line=None, header=None, body=None):
+        """
+        Initializes an instance of the Http class.
+
+        :return: None        :rtype:
+        """
         if http_text is not None:
             self.line, self.header, self.body = self.parse_http_request(http_text)
         else:
@@ -52,12 +57,27 @@ class Http:
             self.body = body
 
     def to_binary(self):
+        """
+        Converts the HTTP instance to binary format.
+
+        :return: The binary representation of the HTTP instance.
+        :rtype: bytes
+        """
         if self.body is None:
             return f"{self.line}\r\n{self.convert_header_to_string(self.header)}\r\n\r\n".encode()
         return f"{self.line}\r\n{self.convert_header_to_string(self.header)}\r\n\r\n".encode() + self.body
 
     @staticmethod
     def parse_http_request(request):
+        """
+        Parses an HTTP request.
+
+        :param request: The raw HTTP request.
+        :type request: str
+
+        :return: The HTTP request line, headers, and body.
+        :rtype: tuple
+        """
         logging.debug("Parsing HTTP request: %s", request)
         line, header, body = '', '', ''
         if request.find('\r\n') == -1:
@@ -73,6 +93,15 @@ class Http:
 
     @staticmethod
     def convert_header_to_string(header):
+        """
+        Converts HTTP headers to a string.
+
+        :param header: The HTTP headers.
+        :type header: dict
+
+        :return: The string representation of HTTP headers.
+        :rtype: str
+        """
         logging.debug("Converting header to string: %s", header)
         headers = ""
         for key, value in header.items():
@@ -83,6 +112,11 @@ class Http:
 
 class HttpRespond(Http):
     def __init__(self, code, header, body=None, content_type=None):
+        """
+        Initializes an instance of the HttpRespond class.
+
+        :return: None        :rtype:
+        """
         self.line = f"HTTP/1.1 {code} {self.STATUS_CODES[code]}"
         self.header = header
         self.body = body
@@ -91,6 +125,11 @@ class HttpRespond(Http):
         self.handle_data(content_type)
 
     def handle_data(self, content_type):
+        """
+            Handles data in the response.
+
+            :return: None            :rtype:
+        """
         self.header.update({'Content-Type': content_type})
         self.header.update({'Content-Length': str(len(self.body) + 2)})
         return
@@ -102,12 +141,23 @@ class HttpGet(Http):
     }
 
     def __init__(self, http_text):
+        """
+            Initializes an instance of the HttpGet class.
+
+            :return: None            :rtype:
+        """
         super().__init__(http_text=http_text)
         self.parm = None  # later
         self.path = self.get_path_from_url(self.line)
         print(self.path)
 
     def create_response(self):
+        """
+            Creates an HTTP response for the GET request.
+
+            :return: The HTTP response.
+            :rtype: HttpRespond
+        """
         if self.path == '/':
             self.path = '/index.html'
         file_path = self.WEB_ROOT + self.path
@@ -136,6 +186,15 @@ class HttpGet(Http):
 
     @staticmethod
     def get_path_from_url(url):
+        """
+            Extracts the path from the URL.
+
+            :param url: The URL.
+            :type url: str
+
+            :return: The path from the URL.
+            :rtype: str
+        """
         logging.debug("Extracting path from URL: %s", url)
         url = url.split(" ")
         return url[1]
