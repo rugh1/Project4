@@ -1,6 +1,6 @@
 import re
 import socket
-import http
+import rugh_http
 import logging
 
 # Configure logging
@@ -29,10 +29,10 @@ def handle_client(client_socket):
         logging.debug("Received request: %s", req)
         if len(req) > 0:
             if valid_get(req):
-                req = http.HttpGet(req)
+                req = rugh_http.HttpGet(req)
                 res = req.create_response()
             else:
-                res = http.HttpRespond(400, {})
+                res = rugh_http.HttpRespond(400, {})
                 print(res.to_binary().decode())
             logging.info("Sending response: %s %s", res.line, res.header)
             client_socket.send(res.to_binary())
